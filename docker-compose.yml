@@ -31,11 +31,12 @@ services:
       - "8000:8000"
     env_file:
       - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://veriq:veriq_dev_password@postgres:5432/veriq
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-
 volumes:
   postgres_data:
