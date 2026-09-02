@@ -1,0 +1,7 @@
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql://veriq:veriq_dev_password@postgres:5432/veriq
