@@ -5,6 +5,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserOut
 from fastapi.security import OAuth2PasswordRequestForm
 from app.auth import hash_password, verify_password, create_access_token
+from app.models.workspace import Workspace
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -14,6 +15,7 @@ from app.schemas.user import UserOut
 @router.get("/me", response_model=UserOut)
 def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
+
 
 @router.post("/register", response_model=UserOut)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
@@ -28,6 +30,11 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    workspace = Workspace(name=f"{new_user.email}'s Workspace", owner_id=new_user.id)
+    db.add(workspace)
+    db.commit()
+
     return new_user
 
 

@@ -1,7 +1,12 @@
 import bcrypt
 from datetime import datetime, timedelta, timezone
-from jose import jwt
 from app.config import settings
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from jose import JWTError, jwt
+from app.database import get_db
+from app.models.user import User
 
 def hash_password(plain_password: str) -> str:
     salt = bcrypt.gensalt()
@@ -22,13 +27,6 @@ def create_access_token(data: dict, expires_minutes: int = 30) -> str:
 
 def decode_access_token(token: str) -> dict:
     return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from jose import JWTError
-from app.database import get_db
-from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
