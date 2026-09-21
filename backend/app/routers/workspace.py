@@ -7,8 +7,10 @@ from app.models.db_connection import DBConnection
 from app.schemas.db_connection import DBConnectionCreate, DBConnectionOut
 from app.auth import get_current_user
 from app.encryption import encrypt_value
+from app.db_utils import test_connection
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
+
 
 @router.post("/connect-db", response_model=DBConnectionOut)
 def connect_db(
@@ -23,6 +25,12 @@ def connect_db(
     existing = db.query(DBConnection).filter(DBConnection.workspace_id == workspace.id).first()
     if existing:
         raise HTTPException(status_code=400, detail="A database is already connected to this workspace")
+
+    success, message = test_connection(
+        conn_in.host, conn_in.port, conn_in.database_name, conn_in.username, conn_in.password
+    )
+    if not success:
+        raise HTTPException(status_code=400, detail=f"Could not connect to database: {message}")
 
     new_conn = DBConnection(
         workspace_id=workspace.id,
