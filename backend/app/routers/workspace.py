@@ -6,8 +6,8 @@ from app.models.workspace import Workspace
 from app.models.db_connection import DBConnection
 from app.schemas.db_connection import DBConnectionCreate, DBConnectionOut
 from app.auth import get_current_user
-from app.encryption import encrypt_value
-from app.db_utils import test_connection
+from app.encryption import encrypt_value, decrypt_value
+from app.db_utils import test_connection,get_schema
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
@@ -44,3 +44,21 @@ def connect_db(
     db.commit()
     db.refresh(new_conn)
     return new_conn
+
+
+@router.get("/schema")
+def get_workspace_schema(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    workspace = db.query(Workspace).filter(Workspace.owner_id == current_user.id).first()
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    conn = db.query(DBConnection).filter(DBConnection.workspace_id == workspace.id).first()
+    if not conn:
+        raise HTTPException(status_code=404, detail="No database connected to this workspace")
+
+    password = decrypt_value(conn.encrypted_password)
+    schema = get_schema(conn.host, conn.port, conn.database_name, conn.username, password)
+    return schema
