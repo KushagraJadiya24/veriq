@@ -4,6 +4,7 @@ from app.database import Base, engine
 from app.models import user,workspace
 from app.routers import auth,workspace
 from app.models import db_connection
+from app.models import schema_embedding
 
 Base.metadata.create_all(bind=engine)
 

@@ -8,6 +8,8 @@ from app.schemas.db_connection import DBConnectionCreate, DBConnectionOut
 from app.auth import get_current_user
 from app.encryption import encrypt_value, decrypt_value
 from app.db_utils import test_connection,get_schema
+from app.models.schema_embedding import SchemaEmbedding
+from app.embeddings import generate_embedding
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
@@ -62,3 +64,40 @@ def get_workspace_schema(
     password = decrypt_value(conn.encrypted_password)
     schema = get_schema(conn.host, conn.port, conn.database_name, conn.username, password)
     return schema
+
+
+@router.post("/generate-embeddings")
+def generate_embeddings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    workspace = db.query(Workspace).filter(Workspace.owner_id == current_user.id).first()
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    conn = db.query(DBConnection).filter(DBConnection.workspace_id == workspace.id).first()
+    if not conn:
+        raise HTTPException(status_code=404, detail="No database connected to this workspace")
+
+    password = decrypt_value(conn.encrypted_password)
+    schema = get_schema(conn.host, conn.port, conn.database_name, conn.username, password)
+
+    db.query(SchemaEmbedding).filter(SchemaEmbedding.workspace_id == workspace.id).delete()
+
+    created = []
+    for table_name, columns in schema.items():
+        column_desc = ", ".join(f"{c['name']} ({c['type']})" for c in columns)
+        content = f"table: {table_name}, columns: {column_desc}"
+        vector = generate_embedding(content)
+
+        row = SchemaEmbedding(
+            workspace_id=workspace.id,
+            table_name=table_name,
+            content=content,
+            embedding=vector,
+        )
+        db.add(row)
+        created.append(table_name)
+
+    db.commit()
+    return {"tables_embedded": created}
