@@ -5,12 +5,13 @@ from app.models import user,workspace
 from app.routers import auth,workspace
 from app.models import db_connection
 from app.models import schema_embedding
-
-Base.metadata.create_all(bind=engine)
+from app.routers import auth, workspace, query
 
 app = FastAPI()
 app.include_router(auth.router)
 app.include_router(workspace.router)
+app.include_router(query.router)
+Base.metadata.create_all(bind=engine)
 
 @app.get("/health")
 async def check_health():
