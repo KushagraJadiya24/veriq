@@ -1,10 +1,7 @@
 from fastapi import FastAPI
 from app.config import settings
 from app.database import Base, engine
-from app.models import user,workspace
-from app.routers import auth,workspace
-from app.models import db_connection
-from app.models import schema_embedding
+from app.models import user, workspace, db_connection, schema_embedding, audit_log
 from app.routers import auth, workspace, query
 
 app = FastAPI()
