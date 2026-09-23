@@ -101,3 +101,20 @@ def generate_embeddings(
 
     db.commit()
     return {"tables_embedded": created}
+
+from app.retrieval import retrieve_relevant_tables
+from pydantic import BaseModel
+
+class QuestionIn(BaseModel):
+    question: str
+
+@router.post("/relevant-tables")
+def relevant_tables(
+    body: QuestionIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    workspace = db.query(Workspace).filter(Workspace.owner_id == current_user.id).first()
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    return retrieve_relevant_tables(db, workspace.id, body.question)
