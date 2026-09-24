@@ -32,3 +32,15 @@ def check_complexity(sql: str) -> tuple[bool, str]:
     if join_count > MAX_JOINS:
         return False, f"Query too complex: {join_count} joins (max {MAX_JOINS})"
     return True, "OK"
+
+SENSITIVE_COLUMN_PATTERNS = ("password", "hashed_password", "secret", "token", "encrypted_")
+
+def check_sensitive_columns(sql: str) -> tuple[bool, str]:
+    parsed = sqlglot.parse_one(sql, read="postgres")
+    if isinstance(parsed.expressions[0], exp.Star):
+        return False, "SELECT * is not allowed — specify explicit columns"
+    for col in parsed.find_all(exp.Column):
+        col_name = col.name.lower()
+        if any(pattern in col_name for pattern in SENSITIVE_COLUMN_PATTERNS):
+            return False, f"Query references a sensitive column: {col.name}"
+    return True, "OK"
