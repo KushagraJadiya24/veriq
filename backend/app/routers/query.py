@@ -112,6 +112,7 @@ def ask(
             "rows": rows,
             "row_count": len(rows),
             "execution_time_ms": elapsed_ms,
+            "hallucination_warning": final_state.get("hallucination_check") or None,
         }
     finally:
         engine.dispose()
