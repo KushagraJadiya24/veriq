@@ -55,7 +55,29 @@ def run_query(
     finally:
         engine.dispose()
 
-
+@router.get("/history")
+def history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    workspace = db.query(Workspace).filter(Workspace.owner_id == current_user.id).first()
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    logs = (
+        db.query(AuditLog)
+        .filter(AuditLog.workspace_id == workspace.id)
+        .order_by(AuditLog.id.desc())
+        .limit(20)
+        .all()
+    )
+    return [
+        {
+            "id": l.id,
+            "question": l.question,
+            "sql": l.sql,
+            "blocked": l.blocked,
+            "block_reason": l.block_reason,
+            "created_at": l.created_at.isoformat() if l.created_at else None,
+        }
+        for l in logs
+    ]
 @router.post("/ask")
 def ask(
     body: QuestionIn,
@@ -113,6 +135,7 @@ def ask(
             "row_count": len(rows),
             "execution_time_ms": elapsed_ms,
             "hallucination_warning": final_state.get("hallucination_check") or None,
+            "tables_used": [t["table_name"] for t in tables],
         }
     finally:
         engine.dispose()
