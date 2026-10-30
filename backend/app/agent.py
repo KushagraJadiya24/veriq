@@ -36,6 +36,7 @@ def generate_sql_node(state: AgentState) -> AgentState:
 
     Respond with ONLY valid JSON matching this exact shape, no markdown, no extra text:
     {{"sql": "<the SQL query>", "explanation": "<one sentence on what it does>"}}"""
+    state["error"] = ""
     try:
         response = model.generate_content(
             prompt,
@@ -44,7 +45,7 @@ def generate_sql_node(state: AgentState) -> AgentState:
     except ResourceExhausted as e:
         state["error"] = "Rate limit reached — please wait a moment and try again."
         state["sql"] = ""
-        state["attempts"] = 1
+        state["attempts"] = 2
         return state
 
     try:
@@ -78,7 +79,7 @@ def validate_node(state: AgentState) -> AgentState:
 
 
 def route_after_validate(state: AgentState) -> str:
-    if state["error"] and state["attempts"] < 1:
+    if state["error"] and state["attempts"] < 2:
         return "retry"
     if state["error"]:
         return "fail"

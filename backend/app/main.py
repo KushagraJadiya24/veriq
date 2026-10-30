@@ -16,6 +16,10 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(workspace.router)
 app.include_router(query.router)
+from sqlalchemy import text
+
+with engine.begin() as conn:
+    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 Base.metadata.create_all(bind=engine)
 
 @app.get("/health")
